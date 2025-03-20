@@ -22,9 +22,6 @@ from network import C3D_model, R2Plus1D_model, R3D_model, T2CC3D_model, DIY, C3D
     resnet_3d, xception_3D, mobilenetv2, shufflenetv2, squeezenet, MobileNetV3, VGG3D_AttNatt, DIY_X, F_6M3DC, Dahan_3D, \
     DenseNet_3D
 
-# 此代码基于https://github.com/jfzhang95/pytorch-video-recognition重构，用于烟火识别
-# 作者：宋俊猛 邮箱：1@vn.mk
-
 nEpochs = 200  # Number of epochs for training
 resume_epoch = 0  # Default is 0, change if want to resume
 useTest = True  # See evolution of the test set when training
@@ -35,12 +32,10 @@ weight_decay = 1e-4
 lr_list = []
 dataset = 'ucf101'  # Options: hmdb51 or ucf101
 modelName = 'Dahan_3D'
-# 待测试 Xception mobilenetv2 ShuffleNetV2 SqueezeNet MobileNetV3
-# C3D R2Plus1D R3D VGG DIY R2Plus1D vgg_3D t2CC3D C3D_AttNAtt P3D199 resnet10 Xception VGG3D_Att F_6M3DC Dahan_3D DenseNet_3D
 saveName = modelName + '-' + dataset
 acc_max = 0.0
 
-# 适配两台不同机器调用
+
 select_device = "Q"
 
 if select_device == "Q":
@@ -142,18 +137,11 @@ def plot_cm(confusion, save_path, epoch, class_name=[]):  # numname of svg
         os.makedirs(str(save_path))
     fig = plt.figure(dpi=300, figsize=(10, 10))  ##dpi调整图片的DPI大小，figsize调整画布大小
     # plt.imshow(confusion, cmap='binary', interpolation='nearest')  # 画混淆矩阵的函数,数量的颜色
-    # 就是坐标轴含义说明了
-
+  
     np.set_printoptions(precision=2)  # 确定小数点后的位数，也就是精度
     confusion_normalized = confusion.astype('float') / confusion.sum(axis=1)[:, np.newaxis]  # np.newaxis插入新维度，变成一个列向量
-    # print(confusion_normalized)#显示混淆矩阵数字
-
+ 
     plt.imshow(confusion_normalized, cmap='Blues', interpolation='nearest')  # 画混淆矩阵的函数，比例的颜色blues
-    ##plt.imshow(confusion_normalized, cmap='Binary', interpolation='nearest')  # 画混淆矩阵的函数，比例的颜色lack
-
-    ## ytick = xtick = np.arange(0, 10)
-    # Lable_list = ['Diving', 'Golf Swing', 'Kicking', 'Lifting', 'Riding Horse', 'Running', 'Skateboarding',
-    #               'Swing-Bench', 'Swing-Side', 'Walking']
 
     if len(class_name) == 0:
         Lable_list = np.arange(0, confusion.shape[1]).tolist()
@@ -163,7 +151,6 @@ def plot_cm(confusion, save_path, epoch, class_name=[]):  # numname of svg
     plt.xticks(range(len(confusion_normalized)), Lable_list, fontsize=18, rotation=45)  # rotation表示倾斜的程度
     plt.yticks(range(len(confusion_normalized)), Lable_list, fontsize=18)
 
-    # 显示数据，直观些 2是一个阈值
     thresh = confusion_normalized.max() / 2
     for i in range(len(confusion_normalized)):
         for j in range(len(confusion_normalized[i])):
@@ -262,49 +249,9 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
         raise NotImplementedError
     criterion = nn.CrossEntropyLoss()  # standard crossentropy loss for classification
 
-    # optimizer = optim.SGD(train_params, lr=lr, momentum=0.9, weight_decay=5e-4)
-    # 2022年3月30日 已测试不收敛
-
-    # 测试可以收敛 Loss下降慢，抖动严重
-    # optimizer = optim.Adam(train_params, lr=lr, weight_decay=0.0001)
-
-    optimizer = optim.Adam(train_params, lr=lr, weight_decay=weight_decay)
-
-    # optimizer = torch.optim.Adadelta(train_params, lr=1.0, rho=0.9, eps=1e-06, weight_decay=0)
-
-    # optimizer = torch.optim.Adagrad(train_params, lr=0.01, lr_decay=0, weight_decay=0, initial_accumulator_value=0, eps=1e-10)
-
-    # optimizer = torch.optim.RMSprop(train_params, lr=0.01, alpha=0.99, eps=1e-08, weight_decay=0, momentum=0, centered=False)
-
-    # optimizer = torch.optim.SGD(train_params, lr=0.02, momentum=0.95)
-
-    # optimizer = torch.optim.SGD(train_params, lr=0.01, momentum=0, dampening=0, weight_decay=0, nesterov=False)
-
+   
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=4,
                                           gamma=0.95)
-
-    # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10,
-    #                                       gamma=0.1)  # the scheduler divides the lr by 10 every 10 epochs
-
-    # https://github.com/mengcius/PyTorch-Learning-Rate-Scheduler/blob/master/PyTorch%E5%AD%A6%E4%B9%A0%E7%8E%87%E8%B0%83%E6%95%B4%E7%AD%96%E7%95%A5.ipynb
-    # torch.optim.lr_scheduler.LambdaLR
-    # 自定义lamda函数
-    # torch.optim.lr_scheduler.StepLR
-    # 等间隔阶梯下降
-    # torch.optim.lr_scheduler.MultiStepLR
-    # 指定多间隔step_list阶梯下降
-    # torch.optim.lr_scheduler.ExponentialLR
-    # 指数下降
-    # torch.optim.lr_scheduler.CosineAnnealingLR
-    # 余弦退火
-    # torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
-    # 带热启动的余弦退火
-    # torch.optim.lr_scheduler.CyclicLR
-    # 循环调整
-    # torch.optim.lr_scheduler.OneCycleLR
-    # 第一次退火到大学习率
-    # torch.optim.lr_scheduler.ReduceLROnPlateau
-    # 自适应下降
 
     if resume_epoch == 0:
         # print("Training {} from scratch...".format(modelName))
@@ -375,10 +322,9 @@ def train_model(dataset=dataset, save_dir=save_dir, num_classes=num_classes, lr=
                 # scheduler.step() is to be called once every epoch during training
                 scheduler.step()
 
-                # 2022年3月30日11:20:46 设置学习率衰减策略
+         
                 # lr_list.append(optimizer.state_dict()['param_groups'][0]['lr'])
 
-                # 2022年3月30日11:22:50 阶梯下降
                 lr_list.append(optimizer.state_dict()['param_groups'][0]['lr'])
 
                 model.train()

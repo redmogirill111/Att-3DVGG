@@ -13,12 +13,6 @@ from torch.autograd import Variable
 from prettytable import PrettyTable
 from pycm import *
 import wandb
-# wandb sync wandb/dryrun-folder-name 在线提交记录
-# https://wandb.ai/fusang/ 查看训练记录
-# pip install wandb
-# Run `wandb offline` to turn off syncing.
-# wandb login
-# cef070a0c15100d6b4a4678afd3e5c0ebc7d5062
 import config
 from torchvision import transforms
 from dataloaders.dataset import DatasetFromLMDB
@@ -33,9 +27,6 @@ from network.TSM.models import TSN
 from network.TSM.transforms import *
 
 def confusion_matrix_calc_pr(labels_truth, labels_predict):
-    # 更新此函数(2022年7月25日)，使用第三方库 https://github.com/sepandhaghighi/pycm 重新实现
-    # 参考文献 https://blog.csdn.net/weixin_45825073/article/details/122042165
-    # pycm官方手册 https://www.pycm.io/doc/index.html
     cm_new = ConfusionMatrix(actual_vector=labels_truth, predict_vector=labels_predict)
     matrix = cm_new.matrix
 
@@ -57,7 +48,6 @@ def confusion_matrix_calc_pr(labels_truth, labels_predict):
     # from pycm import *
     # cm = ConfusionMatrix(matrix={0: {0: 626, 1: 7, 2: 5}, 1: {0: 2, 1: 293, 2: 1}, 2: {0: 3, 1: 1, 2: 126}})
     # print(cm)
-    # 原函数删除2022年8月9日
 
 
 def main(inRun_dir, log_txt, resume_epoch, resume_pth, epochAll, test_interval, useTest):
@@ -188,16 +178,8 @@ def main(inRun_dir, log_txt, resume_epoch, resume_pth, epochAll, test_interval, 
             print("当前",
                   str(phase) + "第" + str(epoch) + "epoch，使用" + str(TrainvalTime_m) + "分" + str(TrainvalTime_s) + "秒")
 
-        # 定期保存epoch 已删除。修改为保存为最佳ACC的epoch权重且删除之前的权重
-        # if epoch % save_epoch == (save_epoch - 1):
-        #     torch.save({
-        #         'epoch': epoch + 1,
-        #         'state_dict': model.state_dict(),
-        #         'opt_dict': optimizer.state_dict(),
-        #     }, os.path.join(inRun_dir, 'models', saveName + '_epoch-' + str(epoch) + '.pth.tar'))
-        #     print("模型保存在{}\n".format(
-        #         os.path.join(inRun_dir, 'models', saveName + '_epoch-' + str(epoch) + '.pth.tar')))
-        #     pass
+       
+      
 
         if useTest and epoch % test_interval == (test_interval - 1):
             model.eval()
@@ -256,7 +238,7 @@ def main(inRun_dir, log_txt, resume_epoch, resume_pth, epochAll, test_interval, 
                             Precision_test * 100) + "\t" + "MAX_Recall_test:" + str(
                             Recall_test * 100) + "\t" + "MAX_F1_test:" + str(F1_test * 100) + "\n" +
                         str(confusion_matrix_test) + "\n" + "-" * 150 + "\n")
-                # 删除已保存的所有模型，再保存一个最优的模型
+               
                 for file_name in listdir(os.path.join(inRun_dir, 'models')):
                     if file_name.endswith('_maxTest.pth.tar'):
                         os.remove(os.path.join(inRun_dir, 'models', file_name))
@@ -309,17 +291,14 @@ def main(inRun_dir, log_txt, resume_epoch, resume_pth, epochAll, test_interval, 
 
 
 if __name__ == '__main__':
-    # https://github.com/fusang1337/Fire-Detection-Base-3DCNN
-    # 此代码基于https://github.com/jfzhang95/pytorch-video-recognition重构，用于烟火识别
-    # 作者：宋俊猛 邮箱：1@vn.mk
 
     device = config.device
     print("程序开始执行，当前使用:", str(device), "运算")
 
-    # 定义当前程序运行目录
+   
     root_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 
-    # 删除run目录下空文件夹
+   
     del_folders = os.listdir(os.path.join(root_dir, 'run'))
     for folder in del_folders:
         # 将上级路径path与文件夹名称folder拼接出文件夹的路径
@@ -329,7 +308,7 @@ if __name__ == '__main__':
             os.rmdir(os.path.join(root_dir, 'run') + '\\' + folder)
             # print("删除了", str(os.path.join(root_dir,'run') + '\\' + folder))
 
-    # 定义程序保存的文件的目录
+ 
     inRun_dir = os.path.join(root_dir, 'run',
                              datetime.now().strftime('%Y%m%d-%H%M%S') + '_' + config.modelName + '_' + str(
                                  config.learnRate) + '_' + str(config.batchSize) + '_' + socket.gethostname())
@@ -461,42 +440,8 @@ if __name__ == '__main__':
     print("模型已创建")
     criterion = nn.CrossEntropyLoss()  # standard crossentropy loss for classification
 
-    # 2022年3月30日 已测试不收敛
-    # optimizer = optim.SGD(train_params, lr=config.learnRate, momentum=0.9, weight_decay=5e-4)
-    # 测试可以收敛 Loss下降慢，抖动严重
-    # optimizer = optim.Adam(train_params, lr=config.learnRate, weight_decay=0.0001)
-    # optimizer = torch.optim.Adadelta(train_params, lr=1.0, rho=0.9, eps=1e-06, weight_decay=0)
-    optimizer = optim.Adam(train_params, lr=config.learnRate)
-    # optimizer = torch.optim.Adadelta(train_params, lr=1.0, rho=0.9, eps=1e-06, weight_decay=0) optimizer =
-    # torch.optim.Adagrad(train_params, lr=0.01, lr_decay=0, weight_decay=0, initial_accumulator_value=0, eps=1e-10)
-    # optimizer = torch.optim.RMSprop(train_params, lr=0.01, alpha=0.99, eps=1e-08, weight_decay=0, momentum=0,
-    # centered=False) optimizer = torch.optim.SGD(train_params, lr=0.02, momentum=0.95) optimizer = torch.optim.SGD(
-    # train_params, lr=0.01, momentum=0, dampening=0, weight_decay=0, nesterov=False)
-
-    # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=4,
-    #                                       gamma=0.95)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10,
-                                          gamma=config.gamma)  # the scheduler divides the lr by 10 every 10 epochs
-
-    # https://github.com/mengcius/PyTorch-Learning-Rate-Scheduler/blob/master/PyTorch%E5%AD%A6%E4%B9%A0%E7%8E%87%E8%B0%83%E6%95%B4%E7%AD%96%E7%95%A5.ipynb
-    # torch.optim.lr_scheduler.LambdaLR
-    # 自定义lamda函数
-    # torch.optim.lr_scheduler.StepLR
-    # 等间隔阶梯下降
-    # torch.optim.lr_scheduler.MultiStepLR
-    # 指定多间隔step_list阶梯下降
-    # torch.optim.lr_scheduler.ExponentialLR
-    # 指数下降
-    # torch.optim.lr_scheduler.CosineAnnealingLR
-    # 余弦退火
-    # torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
-    # 带热启动的余弦退火
-    # torch.optim.lr_scheduler.CyclicLR
-    # 循环调整
-    # torch.optim.lr_scheduler.OneCycleLR
-    # 第一次退火到大学习率
-    # torch.optim.lr_scheduler.ReduceLROnPlateau
-    # 自适应下降
+ 
+    
     if torch.cuda.device_count() > 1:
         model = nn.DataParallel(model)
     model.to(device)
@@ -536,11 +481,7 @@ if __name__ == '__main__':
         shutil.copy('config.py', runPy_dir)
         shutil.copytree('network', os.path.join(runPy_dir, "network"))
 
-    # 关于num_workers
-    # https://blog.csdn.net/JustPeanut/article/details/119146148 windows与linux的num_workers执行有差异
-    # num_workers的经验设置值是自己电脑/服务器的CPU核心数
-    # num_workers=4*num_gpu
-    # https://zhuanlan.zhihu.com/p/479012482
+
 
     if config.useLMDB:
         train_dataloader = DataLoader(DatasetFromLMDB(config.lmdb_train, split='train'),
